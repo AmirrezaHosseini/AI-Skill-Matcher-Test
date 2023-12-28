@@ -21,17 +21,20 @@ import api
 # print(api.return_questionText())
 
 # bot identity
-TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
-BOT_USERNAME: final = "@personaPathTestBot"
+TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
+BOT_USERNAME: final = "@AI_Skill_MatcherBot"
+# TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
+# BOT_USERNAME: final = "@personaPathTestBot"
+
 # Define the questions and answers
 # Define the questions and answer options
-questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
-answer_options = [
-    ["Alice", "Bob", "Charlie"],
-    [],
-    ["Red", "Green", "Blue"],
-]
-question_types = ["0", "1", "0"]
+# questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
+# answer_options = [
+#     ["Alice", "Bob", "Charlie"],
+#     [],
+#     ["Red", "Green", "Blue"],
+# ]
+# question_types = ["0", "1", "0"]
 
 # answer_options = [
 #     [
@@ -54,7 +57,7 @@ question_types = ["0", "1", "0"]
 #     "I am independent and sometimes shy. ",
 # ]
 
-# questions, answer_options, question_types = api.return_questionText()
+questions, answer_options, question_types = api.return_questionText()
 
 # Define the function to handle the /start command
 
