@@ -4,6 +4,11 @@ import json
 # api
 
 api_get = "https://skill-matcher-api.liara.run/api/Question/GetQuestionsByLevelAndTestId/ef3f2bee-a91a-487f-9f4b-83aeb1e7a3df/1"
+api_post = "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
+api_get_questionerId = "https://skill-matcher-api.liara.run/api/Questioner/InsertUserId/3fa85f64-5717-0000-b3fc-2c963f66afa6"
+headers = {
+    "Content-Type": "application/json",  # Include this if your API requires authentication
+}
 
 
 # Define the function to send a GET request
@@ -36,13 +41,6 @@ def get_QuestionText(q):
     return list_questionText
 
 
-def get_QuestionType(q):
-    list_questionType = []
-    for i in range(0, len(q)):
-        list_questionType.append(q[i]["type"])
-    return list_questionType
-
-
 def get_OptionText(q):
     list_optionText = []
     for i in range(0, len(q)):
@@ -54,13 +52,14 @@ def get_OptionText(q):
     return list_optionText
 
 
+questions = get_data_question(api_get)
+
+
 def return_questionText():
-    questions = get_data_question(api_get)
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
-    typeText = get_QuestionType(questions)
     # print(data)
-    return questionText, OptionText, typeText
+    return questionText, OptionText
 
 
 def return_OptionText():
@@ -68,6 +67,30 @@ def return_OptionText():
     data = get_OptionText(questions)
     # print(data)
     return data
+
+
+def get_QuestionerId():
+    response = requests.post(api_get_questionerId)
+
+    return response.text
+
+
+def send_Questioner(answer):
+    print(questions[0])
+    json_data = {
+        "id": "da0883cb-fad3-44f4-ae43-9e4e701334a8",
+        "userId": "3fa85f64-5717-0000-b3fc-2c963f66afa6",
+        "questions": questions[0],
+        "answers": answer,
+    }
+    response = requests.post(api_post, json=json_data)
+    # Check the response
+    if response.status_code == 200:
+        print("Request was successful!")
+        print(response.json())
+    else:
+        print(f"Error: {response.status_code}")
+        print(response.text)
 
 
 # print(questions[1]["questionText"]["English"])
