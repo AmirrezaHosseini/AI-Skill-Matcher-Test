@@ -21,16 +21,17 @@ import api
 # print(api.return_questionText())
 
 # bot identity
-TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
-BOT_USERNAME: final = "@AI_Skill_MatcherBot"
+TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
+BOT_USERNAME: final = "@personaPathTestBot"
 # Define the questions and answers
 # Define the questions and answer options
-# questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
-# answer_options = [
-#     ["Alice", "Bob", "Charlie"],
-#     ["Under 18", "18-30", "Over 30"],
-#     ["Red", "Green", "Blue"],
-# ]
+questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
+answer_options = [
+    ["Alice", "Bob", "Charlie"],
+    [],
+    ["Red", "Green", "Blue"],
+]
+question_types = ["0", "1", "0"]
 
 # answer_options = [
 #     [
@@ -53,7 +54,7 @@ BOT_USERNAME: final = "@AI_Skill_MatcherBot"
 #     "I am independent and sometimes shy. ",
 # ]
 
-questions, answer_options = api.return_questionText()
+# questions, answer_options, question_types = api.return_questionText()
 
 # Define the function to handle the /start command
 
@@ -66,48 +67,76 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    # init_user_data(update, context)
+
     await update.message.reply_text(
         "Select new test",
         reply_markup=reply_markup,
     )
 
 
+
 # Define the function to show the question and answer options
 async def show_question(update, context):
-    # Get the question index from user_data
+    # Check if the update is a callback query or a regular message
+    if update.callback_query:
+        message = update.callback_query.message
+    else:
+        message = update.message
+
     question_index = context.user_data.get("question_index", 0)
 
-    # Create the keyboard with the answer options as buttons
-    keyboard = [
-        [InlineKeyboardButton(a, callback_data=a)]
-        for a in answer_options[question_index]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    question_type = int(question_types[question_index])
 
-    # Send the message with the question and the keyboard
-    await update.callback_query.edit_message_text(
-        questions[question_index], reply_markup=reply_markup
-    )
+    if question_type == 0:  # Multiple Choice
+        keyboard = [
+            [InlineKeyboardButton(a, callback_data=a)]
+            for a in answer_options[question_index]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await message.reply_text(
+            questions[question_index], reply_markup=reply_markup
+        )
+    elif question_type == 1:  # Descriptive
+        await message.reply_text(questions[question_index])
+    elif question_type == 2:  # Ranged
+        pass
+
 
 
 # Define the function to handle the button press
 async def button(update, context):
     query = update.callback_query
 
-    # Store the answer to the selected question in user_data
+    # Get the question index from user_data
     question_index = context.user_data.get("question_index", 0)
-    context.user_data[f"answer_{question_index}"] = query.data
-
-    # Move to the next question or show the results
-    if question_index < len(questions) - 1:
-        context.user_data["question_index"] = question_index + 1
-        await show_question(update, context)
+    print("print 1")
+    # Check if the question index is within bounds
+    if 0 <= question_index < len(questions):
+        print("print 2")
+        context.user_data[f"answer_{question_index}"] = query.data
+        print("print 3")
+        # Move to the next question or show the results
+        if question_index < len(questions) - 1:
+            print("print 4")
+            context.user_data["question_index"] = question_index + 1
+            await show_question(update, context)
+        else:
+            print("print 5")
+            results = [
+                f"{q}: {context.user_data[f'answer_{i}']}" for i, q in enumerate(questions)
+            ]
+            print("print 6")
+            query.answer()
+            print("print 7")
+            await query.edit_message_text(text="\n".join(results))
+            # Reset question_index to None to avoid errors when processing new responses
+            context.user_data["question_index"] = None
     else:
-        results = [
-            f"{q}: {context.user_data[f'answer_{i}']}" for i, q in enumerate(questions)
-        ]
-        update.callback_query.answer()
-        await update.callback_query.edit_message_text(text="\n".join(results))
+        await query.answer()
+        await query.edit_message_text("Sorry, I couldn't identify the current question.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -117,16 +146,29 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Define the function to handle the user's answer
-def answer(update, context):
+async def answer(update, context):
     # Get the user's answer and the selected question index from user_data
     answer_text = update.message.text
-    question_index = context.user_data.get("selected_question")
+    question_index = context.user_data.get("question_index")
 
-    # Store the answer in user_data
-    context.user_data["answers"][question_index] = answer_text
+    if question_index is not None:
+        # Store the answer in user_data
+        # context.user_data["answers"][question_index] = answer_text
+        context.user_data[f"answer_{question_index}"] = answer_text
 
-    # Send a confirmation message to the user
-    update.message.reply_text(f"Your answer '{answer_text}' has been saved.")
+
+        # Move to the next question
+        if question_index < len(questions) - 1:
+            context.user_data["question_index"] = question_index + 1
+            await show_question(update, context)
+        else:
+            results = [
+                f"{q}: {context.user_data[f'answer_{i}']}" for i, q in enumerate(questions)
+            ]
+            await update.message.reply_text(text="\n".join(results))
+    else:
+        await update.message.reply_text("Sorry, I couldn't identify the current question.")
+
 
 
 def init_user_data(update, context):
@@ -147,7 +189,7 @@ if __name__ == "__main__":
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("help", help_command))
 
-        # app.add_handler(MessageHandler(filters.Text, answer))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer))
 
         # Add the init_user_data function to the list of handlers to be called on every update
         # app.add_handler(MessageHandler(filters.ALL, init_user_data), group=-1)

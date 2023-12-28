@@ -36,6 +36,13 @@ def get_QuestionText(q):
     return list_questionText
 
 
+def get_QuestionType(q):
+    list_questionType = []
+    for i in range(0, len(q)):
+        list_questionType.append(q[i]["type"])
+    return list_questionType
+
+
 def get_OptionText(q):
     list_optionText = []
     for i in range(0, len(q)):
@@ -51,8 +58,9 @@ def return_questionText():
     questions = get_data_question(api_get)
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
+    typeText = get_QuestionType(questions)
     # print(data)
-    return questionText, OptionText
+    return questionText, OptionText, typeText
 
 
 def return_OptionText():
