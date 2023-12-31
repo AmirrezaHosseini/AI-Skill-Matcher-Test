@@ -37,8 +37,16 @@ def send_post_request(url, data):
 def get_QuestionText(q):
     list_questionText = []
     for i in range(0, len(q)):
-        list_questionText.append(q[i]["questionText"]["English"])
+        list_questionText.append(q[i]["questionText"]["english"])
     return list_questionText
+
+
+def get_QuestionType(q):
+    list_questionType = []
+    for i in range(0, len(q)):
+        list_questionType.append(q[i]["type"])
+    return list_questionType
+
 
 
 def get_OptionText(q):
@@ -47,7 +55,7 @@ def get_OptionText(q):
         options = q[i]["options"]
         option = []
         for j in range(0, len(options)):
-            option.append(options[j]["optionText"]["English"])
+            option.append(options[j]["optionText"]["english"])
         list_optionText.append(option)
     return list_optionText
 
@@ -58,8 +66,9 @@ questions = get_data_question(api_get)
 def return_questionText():
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
+    typeText = get_QuestionType(questions)
     # print(data)
-    return questionText, OptionText
+    return questionText, OptionText, typeText
 
 
 def return_OptionText():
