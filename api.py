@@ -3,9 +3,13 @@ import json
 
 # api
 
-api_get = "https://skill-matcher.liara.run/api/Question/GetQuestionsByLevelAndTestId/d0680d38-90c7-480f-89f8-e8b8bd8ff3cc/1"
-api_post = "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
-api_get_questionerId = "https://skill-matcher-api.liara.run/api/Questioner/InsertUserId/3fa85f64-5717-0000-b3fc-2c963f66afa6"
+api_get_questions = "https://skill-matcher-api.liara.run/api/Question/GetQuestionsByLevelAndTestId/ef3f2bee-a91a-487f-9f4b-83aeb1e7a3df/1"
+api_post_answer = (
+    "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
+)
+api_get_questionerId = (
+    "https://skill-matcher-api.liara.run/api/Questioner/InsertUserId/"
+)
 headers = {
     "Content-Type": "application/json",  # Include this if your API requires authentication
 }
@@ -59,8 +63,10 @@ def get_OptionText(q):
     return list_optionText
 
 
+questions = get_data_question(api_get_questions)
+
+
 def return_dataQuestion():
-    questions = get_data_question(api_get)
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
     # typeText = get_QuestionType(questions)
@@ -75,10 +81,11 @@ def return_OptionText():
     return data
 
 
-def get_QuestionerId():
-    response = requests.post(api_get_questionerId)
+def get_QuestionerId(user_id):
+    response = requests.post(api_get_questionerId + user_id)
+    questioner_id = response.text.replace('"', "")
 
-    return response.text
+    return questioner_id
 
 
 def post_User(name, telegramId):
@@ -96,7 +103,7 @@ def post_User(name, telegramId):
         user_DbId = json.loads(response.text)["id"]
     elif response.status_code == 400:
         print("This TelegramID already exists")
-        return get_userdata_Existed(telegramId)
+        user_DbId = get_userdata_Existed(telegramId)
     else:
         print(f"Error: {response.status_code}")
 
@@ -118,19 +125,21 @@ def get_userdata_Existed(telegramId):
     return user_DbId
 
 
-def send_Questioner(answer):
-    print(questions[0])
+def send_Questioner(user_id, answer, idx):
+    print(questions[1])
+    QuestionerId = get_QuestionerId(user_id)
     json_data = {
-        "id": "da0883cb-fad3-44f4-ae43-9e4e701334a8",
-        "userId": "3fa85f64-5717-0000-b3fc-2c963f66afa6",
-        "questions": questions[0],
+        "id": QuestionerId,
+        "userId": user_id,
+        "questions": questions[idx],
         "answers": answer,
     }
-    response = requests.post(api_post, json=json_data)
+
+    response = requests.put(api_post_answer, json=json_data)
     # Check the response
     if response.status_code == 200:
         print("Request was successful!")
-        print(response.json())
+        print(json.loads(response.text))
     else:
         print(f"Error: {response.status_code}")
         print(response.text)

@@ -16,7 +16,7 @@ from telegram.ext import (
 )
 import telegram.error
 
-# import api
+import api
 
 ##### get data  #####
 # print(api.return_questionText())
@@ -34,35 +34,37 @@ BOT_USERNAME: final = "@AI_Skill_MatcherBot"
 #     [],
 #     ["Red", "Green", "Blue"],
 # ]
-question_types = ["0", "0", "1"]
+question_types = ["0", "0"]
 
 user_username = ""
 full_name = ""
+# id save in DataBase
+user_id = ""
 
 
-answer_options = [
-    [
-        "1) Strongly Disagree",
-        "2) Disagree",
-        "3) Neither Agree nor Disagree",
-        "4) Agree",
-        "5) Strongly Agree",
-    ],
-    [
-        "1) Strongly Disagree ",
-        "2) Disagree ",
-        "3) Neither Agree nor Disagree",
-        "4) Agree",
-        "5) Strongly Agree",
-    ],
-]
-questions = [
-    "I usually prefer group work and get energy from others. I have many friends and share my personal information easily with others. I usually take the lead in work and activities and building relationships. ",
-    "I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
-    "write your opinion learn better through reflection and mental exercise ",
-]
+# answer_options = [
+#     [
+#         "1) Strongly Disagree",
+#         "2) Disagree",
+#         "3) Neither Agree nor Disagree",
+#         "4) Agree",
+#         "5) Strongly Agree",
+#     ],
+#     [
+#         "1) Strongly Disagree ",
+#         "2) Disagree ",
+#         "3) Neither Agree nor Disagree",
+#         "4) Agree",
+#         "5) Strongly Agree",
+#     ],
+# ]
+# questions = [
+#     "I usually prefer group work and get energy from others. I have many friends and share my personal information easily with others. I usually take the lead in work and activities and building relationships. ",
+#     "I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
+#     "write your opinion learn better through reflection and mental exercise ",
+# ]
 
-# questions, answer_options, question_types = api.return_questionText()
+questions, answer_options = api.return_dataQuestion()
 # print(type(questions))
 
 # Define the function to handle the /start command
@@ -84,9 +86,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     full_name = (
         f"{user_first_name} {user_last_name}" if user_last_name else user_first_name
     )
-    print(
-        f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
-    )
+    user_id = api.post_User(full_name, user_username)
+    # print(
+    #     f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
+    # )
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -98,8 +101,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define the function to show the question and answer options
 async def show_question(update, context):
     # Get user information
-
-    # Print user information in the terminal
 
     # Check if the update is a callback query or a regular message
     if update.callback_query:
