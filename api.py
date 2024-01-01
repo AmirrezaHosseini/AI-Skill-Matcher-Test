@@ -3,7 +3,7 @@ import json
 
 # api
 
-api_get = "https://skill-matcher-api.liara.run/api/Question/GetQuestionsByLevelAndTestId/ef3f2bee-a91a-487f-9f4b-83aeb1e7a3df/1"
+api_get = "https://skill-matcher.liara.run/api/Question/GetQuestionsByLevelAndTestId/d0680d38-90c7-480f-89f8-e8b8bd8ff3cc/1"
 api_post = "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
 api_get_questionerId = "https://skill-matcher-api.liara.run/api/Questioner/InsertUserId/3fa85f64-5717-0000-b3fc-2c963f66afa6"
 headers = {
@@ -48,27 +48,24 @@ def get_QuestionType(q):
     return list_questionType
 
 
-
 def get_OptionText(q):
     list_optionText = []
     for i in range(0, len(q)):
         options = q[i]["options"]
         option = []
         for j in range(0, len(options)):
-            option.append(options[j]["optionText"]["english"])
+            option.append(options[j]["english"])
         list_optionText.append(option)
     return list_optionText
 
 
-questions = get_data_question(api_get)
-
-
-def return_questionText():
+def return_dataQuestion():
+    questions = get_data_question(api_get)
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
-    typeText = get_QuestionType(questions)
+    # typeText = get_QuestionType(questions)
     # print(data)
-    return questionText, OptionText, typeText
+    return questionText, OptionText
 
 
 def return_OptionText():
@@ -82,6 +79,43 @@ def get_QuestionerId():
     response = requests.post(api_get_questionerId)
 
     return response.text
+
+
+def post_User(name, telegramId):
+    json_data = {
+        "name": name,
+        "preferredLanguage": 0,
+        "telegramId": telegramId,
+    }
+    response = requests.post(
+        "https://skill-matcher.liara.run/api/User/InsertFirstInfoBot", json=json_data
+    )
+    # Check the response
+    if response.status_code == 200:
+        print("Request was successful!")
+        user_DbId = json.loads(response.text)["id"]
+    elif response.status_code == 400:
+        print("This TelegramID already exists")
+        return get_userdata_Existed(telegramId)
+    else:
+        print(f"Error: {response.status_code}")
+
+    return user_DbId
+
+
+def get_userdata_Existed(telegramId):
+    response = requests.get(
+        f"https://skill-matcher.liara.run/api/User/GetUserInfoBot/{telegramId}"
+    )
+    # Check the response
+
+    if response.status_code == 200:
+        print("Request was successful!")
+        user_DbId = json.loads(response.text)["id"]
+    else:
+        print(f"Error: {response.status_code}")
+
+    return user_DbId
 
 
 def send_Questioner(answer):

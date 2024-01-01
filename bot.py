@@ -15,7 +15,8 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 import telegram.error
-import api
+
+# import api
 
 ##### get data  #####
 # print(api.return_questionText())
@@ -33,31 +34,36 @@ BOT_USERNAME: final = "@AI_Skill_MatcherBot"
 #     [],
 #     ["Red", "Green", "Blue"],
 # ]
-# question_types = ["0", "1", "0"]
+question_types = ["0", "0", "1"]
 
-# answer_options = [
-#     [
-#         "1) Strongly Disagree",
-#         "2) Disagree",
-#         "3) Neither Agree nor Disagree",
-#         "4) Agree",
-#         "5) Strongly Agree",
-#     ],
-#     [
-#         "1) Strongly Disagree ",
-#         "2) Disagree ",
-#         "3) Neither Agree nor Disagree",
-#         "4) Agree",
-#         "5) Strongly Agree",
-#     ],
-# ]
-# questions = [
-#     "1 )I usually prefer group work and get energy from others. I have many friends and share my personal information easily with others. I usually take the lead in work and activities and building relationships. ",
-#     "2)I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
-# ]
+user_username = ""
+full_name = ""
 
-questions, answer_options, question_types = api.return_questionText()
-print(type(questions))
+
+answer_options = [
+    [
+        "1) Strongly Disagree",
+        "2) Disagree",
+        "3) Neither Agree nor Disagree",
+        "4) Agree",
+        "5) Strongly Agree",
+    ],
+    [
+        "1) Strongly Disagree ",
+        "2) Disagree ",
+        "3) Neither Agree nor Disagree",
+        "4) Agree",
+        "5) Strongly Agree",
+    ],
+]
+questions = [
+    "I usually prefer group work and get energy from others. I have many friends and share my personal information easily with others. I usually take the lead in work and activities and building relationships. ",
+    "I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
+    "write your opinion learn better through reflection and mental exercise ",
+]
+
+# questions, answer_options, question_types = api.return_questionText()
+# print(type(questions))
 
 # Define the function to handle the /start command
 
@@ -69,6 +75,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("New Test", callback_data="new_test"),
         ]
     ]
+    user = update.message.from_user
+    user_id = user.id
+    user_first_name = user.first_name
+    user_last_name = user.last_name
+    user_username = user.username
+
+    full_name = (
+        f"{user_first_name} {user_last_name}" if user_last_name else user_first_name
+    )
+    print(
+        f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
+    )
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
         "Hi ! I'm AI_Skill_Matcher .\n If You want assistance, Select 'New test'",
@@ -78,6 +97,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Define the function to show the question and answer options
 async def show_question(update, context):
+    # Get user information
+
+    # Print user information in the terminal
+
     # Check if the update is a callback query or a regular message
     if update.callback_query:
         message = update.callback_query.message
@@ -113,8 +136,6 @@ async def show_question(update, context):
         pass
 
 
-
-
 # Define the function to handle the button press
 async def button(update, context):
     query = update.callback_query
@@ -127,13 +148,18 @@ async def button(update, context):
     ]
 
     # Display the user's answer
-    user_answer = context.user_data[f"Your answer_{question_index}"]
-    await query.message.reply_text(f"Your answer: {user_answer}")
+    # user_answer = context.user_data[f"Your answer_{question_index}"]
+    # await query.message.reply_text(f"Your answer: {user_answer}")
 
     # Disable the buttons after answering
     keyboard = [[]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await query.edit_message_reply_markup(reply_markup)
+
+    # Delete the message after the user has chosen a button
+    # await context.bot.delete_message(
+    #     chat_id=query.message.chat_id, message_id=query.message.message_id
+    # )
 
     # Move to the next question or show the results
     if question_index < len(questions) - 1:
@@ -146,7 +172,6 @@ async def button(update, context):
         ]
         await query.message.reply_text(text="\n\n".join(results))
         query.answer()
-
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -166,18 +191,22 @@ async def answer(update, context):
         # context.user_data["answers"][question_index] = answer_text
         context.user_data[f"Your answer_{question_index}"] = answer_text
 
-
         # Move to the next question
         if question_index < len(questions) - 1:
             context.user_data["question_index"] = question_index + 1
             await show_question(update, context)
         else:
             results = [
-                f"{q}: {context.user_data[f'answer_{i}']}" for i, q in enumerate(questions)
+                f"Question {i + 1}: {questions[i]}\nYour answer: {context.user_data.get(f'Your answer_{i}', 'No answer selected')}"
+                for i in range(len(questions))
             ]
-            await update.message.reply_text(text="\n".join(results))
+        await update.message.reply_text(text="\n\n".join(results))
+        update.answer()
     else:
-        await update.message.reply_text("Sorry, I couldn't identify the current question.")
+        await update.message.reply_text(
+            "Sorry, I couldn't identify the current question."
+        )
+
 
 def init_user_data(update, context):
     context.user_data["answers"] = {}
