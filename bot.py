@@ -34,7 +34,7 @@ BOT_USERNAME: final = "@AI_Skill_MatcherBot"
 #     [],
 #     ["Red", "Green", "Blue"],
 # ]
-question_types = ["0", "0"]
+# question_types = ["0", "0"]
 
 user_username = ""
 full_name = ""
@@ -63,8 +63,9 @@ user_id = ""
 #     "I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
 #     "write your opinion learn better through reflection and mental exercise ",
 # ]
+ranged_option = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
 
-questions, answer_options = api.return_dataQuestion()
+questions, answer_options, question_types = api.return_dataQuestion()
 # print(type(questions))
 
 # Define the function to handle the /start command
@@ -87,9 +88,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{user_first_name} {user_last_name}" if user_last_name else user_first_name
     )
     user_id = api.post_User(full_name, user_username)
-    # print(
-    #     f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
-    # )
+    print(
+        f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
+    )
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -100,7 +101,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Define the function to show the question and answer options
 async def show_question(update, context):
-    # Get user information
+    # Get Questioner id
+    # questioner_id = api.get_QuestionerId(user_id)
 
     # Check if the update is a callback query or a regular message
     if update.callback_query:
@@ -131,10 +133,28 @@ async def show_question(update, context):
             f"Question number{question_index+1}\n{questions[question_index]}",
             reply_markup=reply_markup,
         )
-    elif question_type == 1:  # Descriptive
-        await message.reply_text(questions[question_index])
-    elif question_type == 2:  # Ranged
-        pass
+    elif question_type == 2:  # Descriptive
+        await message.reply_text(
+            f"Question number{question_index+1}\n{questions[question_index]}"
+        )
+    elif question_type == 1:  # Ranged
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    answer,
+                    callback_data=f"answer_{idx}",
+                    switch_inline_query_current_chat="",
+                )
+            ]
+            for idx, answer in enumerate(ranged_option, start=1)
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Send the message with the question and the keyboard
+        await message.reply_text(
+            f"Question number{question_index+1}\n{questions[question_index]}",
+            reply_markup=reply_markup,
+        )
 
 
 # Define the function to handle the button press
@@ -144,9 +164,12 @@ async def button(update, context):
     # Store the answer index to the selected question in user_data
     question_index = context.user_data.get("question_index", 0)
     answer_index = int(query.data.split("_")[1]) - 1
-    context.user_data[f"Your answer_{question_index}"] = answer_options[question_index][
-        answer_index
-    ]
+    if question_types[question_index] == 0:
+        context.user_data[f"Your answer_{question_index}"] = answer_options[
+            question_index
+        ][answer_index]
+    elif question_types[question_index] == 1:
+        context.user_data[f"Your answer_{question_index}"] = ranged_option[answer_index]
 
     # Display the user's answer
     # user_answer = context.user_data[f"Your answer_{question_index}"]

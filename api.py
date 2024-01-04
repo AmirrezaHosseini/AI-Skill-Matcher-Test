@@ -3,7 +3,7 @@ import json
 
 # api
 
-api_get_questions = "https://skill-matcher-api.liara.run/api/Question/GetQuestionsByLevelAndTestId/ef3f2bee-a91a-487f-9f4b-83aeb1e7a3df/1"
+api_get_questions = "https://skill-matcher.liara.run/api/Question/GetQuestionsByTestId/22af796e-8614-4031-a792-5826eaffa32a"
 api_post_answer = (
     "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
 )
@@ -69,9 +69,9 @@ questions = get_data_question(api_get_questions)
 def return_dataQuestion():
     questionText = get_QuestionText(questions)
     OptionText = get_OptionText(questions)
-    # typeText = get_QuestionType(questions)
+    typeText = get_QuestionType(questions)
     # print(data)
-    return questionText, OptionText
+    return questionText, OptionText, typeText
 
 
 def return_OptionText():
@@ -125,9 +125,10 @@ def get_userdata_Existed(telegramId):
     return user_DbId
 
 
-def send_Questioner(user_id, answer, idx):
-    print(questions[1])
-    QuestionerId = get_QuestionerId(user_id)
+def send_Questioner(QuestionerId, user_id, answer, idx):
+    # print(questions[1])
+    # QuestionerId = get_QuestionerId(user_id)
+    # print(QuestionerId)
     json_data = {
         "id": QuestionerId,
         "userId": user_id,
