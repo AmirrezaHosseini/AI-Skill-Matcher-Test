@@ -51,6 +51,12 @@ def get_QuestionType(q):
         list_questionType.append(q[i]["type"])
     return list_questionType
 
+def get_QuestionLevels(q):
+    list_questionLevel = []
+    for i in range(0, len(q)):
+        list_questionLevel.append(q[i]["level"])
+    return list_questionLevel
+
 
 def get_OptionText(q):
     list_optionText = []
@@ -65,13 +71,17 @@ def get_OptionText(q):
 
 questions = get_data_question(api_get_questions)
 
+# Sort questions based on the 'level' key
+sorted_questions = sorted(questions, key=lambda x: x['level'])
+
 
 def return_dataQuestion():
-    questionText = get_QuestionText(questions)
-    OptionText = get_OptionText(questions)
-    typeText = get_QuestionType(questions)
+    questionText = get_QuestionText(sorted_questions)
+    OptionText = get_OptionText(sorted_questions)
+    typeText = get_QuestionType(sorted_questions)
+    levelText = get_QuestionLevels(sorted_questions)
     # print(data)
-    return questionText, OptionText, typeText
+    return questionText, OptionText, typeText, levelText
 
 
 def return_OptionText():

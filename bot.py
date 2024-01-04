@@ -65,7 +65,7 @@ user_id = ""
 # ]
 ranged_option = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
 
-questions, answer_options, question_types = api.return_dataQuestion()
+questions, answer_options, question_types, question_levels = api.return_dataQuestion()
 # print(type(questions))
 
 # Define the function to handle the /start command
@@ -114,6 +114,15 @@ async def show_question(update, context):
 
     question_type = int(question_types[question_index])
 
+    # after each level is finished asks if the user wants to continue the test
+    current_level = context.user_data.get("current_level", 1)
+
+    if int(question_levels[question_index]) > current_level:
+        # Ask the user if they want to continue with the test
+        keyboard = [[InlineKeyboardButton("Yes", callback_data="continue_test"), InlineKeyboardButton("No", callback_data="finish_test")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await message.reply_text("Do you want to continue with the test?", reply_markup=reply_markup)
+        return
     if question_type == 0:  # Multiple Choice
         # Create the keyboard with the answer options as buttons
         keyboard = [
@@ -224,13 +233,27 @@ async def answer(update, context):
                 f"Question {i + 1}: {questions[i]}\nYour answer: {context.user_data.get(f'Your answer_{i}', 'No answer selected')}"
                 for i in range(len(questions))
             ]
-        await update.message.reply_text(text="\n\n".join(results))
-        update.answer()
+            await update.message.reply_text(text="\n\n".join(results))
+            query.answer()
     else:
         await update.message.reply_text(
             "Sorry, I couldn't identify the current question."
         )
 
+
+async def continue_test(update, context):
+    # Move to the next level and show the next question
+    current_level = context.user_data.get("current_level", 1)
+    context.user_data["current_level"] = current_level + 1
+    await show_question(update, context)
+
+
+
+async def finish_test(update, context):
+    print("test finished!")
+    # await update.message.reply_text("Test finished!")
+    # update.answer()
+            
 
 def init_user_data(update, context):
     context.user_data["answers"] = {}
@@ -256,6 +279,8 @@ if __name__ == "__main__":
         # app.add_handler(MessageHandler(filters.ALL, init_user_data), group=-1)
 
         # Callback query for buttons
+        app.add_handler(CallbackQueryHandler(continue_test, pattern="^continue_test$"))
+        app.add_handler(CallbackQueryHandler(finish_test, pattern="^finish_test$"))
         app.add_handler(CallbackQueryHandler(show_question, pattern="^new_test$"))
         app.add_handler(CallbackQueryHandler(button))
 
