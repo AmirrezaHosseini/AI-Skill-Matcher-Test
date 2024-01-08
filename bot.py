@@ -22,10 +22,10 @@ import api
 # print(api.return_questionText())
 
 # bot identity
-TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
-BOT_USERNAME: final = "@AI_Skill_MatcherBot"
-# TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
-# BOT_USERNAME: final = "@personaPathTestBot"
+# TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
+# BOT_USERNAME: final = "@AI_Skill_MatcherBot"
+TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
+BOT_USERNAME: final = "@personaPathTestBot"
 
 # Define the questions and answer options
 # questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
@@ -63,9 +63,11 @@ user_id = ""
 #     "I am independent and sometimes shy. I learn better through reflection and mental exercise. I rarely share my personal information with others. I listen more and talk less. I tend to work individually or at most with the cooperation of two or three people.",
 #     "write your opinion learn better through reflection and mental exercise ",
 # ]
-ranged_option = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "100"]
 
-questions, answer_options, question_types = api.return_dataQuestion()
+questions, answer_options, question_types = [], [], []
+ranged_option = ["10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
+
+
 # print(type(questions))
 
 # Define the function to handle the /start command
@@ -74,8 +76,8 @@ questions, answer_options, question_types = api.return_dataQuestion()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
-            InlineKeyboardButton("Previous Result", callback_data="previous_results"),
-            InlineKeyboardButton("New Test", callback_data="new_test"),
+            InlineKeyboardButton("English", callback_data="english"),
+            InlineKeyboardButton("فارسی", callback_data="persian"),
         ]
     ]
     user = update.message.from_user
@@ -94,15 +96,42 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
-        "Hi ! I'm AI_Skill_Matcher .\n If You want assistance, Select 'New test'",
+        "Hi ! I'm AI_Skill_Matcher .\n Please Choose Your Language",
         reply_markup=reply_markup,
     )
 
 
+async def new_test(update: Update, context):
+    questions, answer_options, question_types = api.return_dataQuestion("english")
+    # Store the data in the context object
+    context.user_data["questions"] = questions
+    context.user_data["answer_options"] = answer_options
+    context.user_data["question_types"] = question_types
+
+    keyboard = [
+        [
+            InlineKeyboardButton("Previous Result", callback_data="previous_results"),
+            InlineKeyboardButton("New Test", callback_data="new_test"),
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        "If You want assistance, Select 'New test'",
+        reply_markup=reply_markup,
+    )
+    # await show_question(update, context)
+
+
 # Define the function to show the question and answer options
 async def show_question(update, context):
+    questions = context.user_data.get("questions")
+    answer_options = context.user_data.get("answer_options")
+    question_types = context.user_data.get("question_types")
     # Get Questioner id
-    # questioner_id = api.get_QuestionerId(user_id)
+
+    questioner_id = api.get_QuestionerId(user_id)
+    print(questioner_id)
 
     # Check if the update is a callback query or a regular message
     if update.callback_query:
@@ -256,6 +285,7 @@ if __name__ == "__main__":
         # app.add_handler(MessageHandler(filters.ALL, init_user_data), group=-1)
 
         # Callback query for buttons
+        app.add_handler(CallbackQueryHandler(new_test, pattern="^english$"))
         app.add_handler(CallbackQueryHandler(show_question, pattern="^new_test$"))
         app.add_handler(CallbackQueryHandler(button))
 

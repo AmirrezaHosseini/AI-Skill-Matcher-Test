@@ -7,9 +7,7 @@ api_get_questions = "https://skill-matcher.liara.run/api/Question/GetQuestionsBy
 api_post_answer = (
     "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
 )
-api_get_questionerId = (
-    "https://skill-matcher-api.liara.run/api/Questioner/InsertUserId/"
-)
+api_get_questionerId = "https://skill-matcher.liara.run/api/Questioner/InsertUserId/"
 headers = {
     "Content-Type": "application/json",  # Include this if your API requires authentication
 }
@@ -38,10 +36,10 @@ def send_post_request(url, data):
         return None
 
 
-def get_QuestionText(q):
+def get_QuestionText(q, language):
     list_questionText = []
     for i in range(0, len(q)):
-        list_questionText.append(q[i]["questionText"]["english"])
+        list_questionText.append(q[i]["questionText"][language])
     return list_questionText
 
 
@@ -52,13 +50,13 @@ def get_QuestionType(q):
     return list_questionType
 
 
-def get_OptionText(q):
+def get_OptionText(q, language):
     list_optionText = []
     for i in range(0, len(q)):
         options = q[i]["options"]
         option = []
         for j in range(0, len(options)):
-            option.append(options[j]["english"])
+            option.append(options[j][language])
         list_optionText.append(option)
     return list_optionText
 
@@ -66,9 +64,9 @@ def get_OptionText(q):
 questions = get_data_question(api_get_questions)
 
 
-def return_dataQuestion():
-    questionText = get_QuestionText(questions)
-    OptionText = get_OptionText(questions)
+def return_dataQuestion(language):
+    questionText = get_QuestionText(questions, language)
+    OptionText = get_OptionText(questions, language)
     typeText = get_QuestionType(questions)
     # print(data)
     return questionText, OptionText, typeText
