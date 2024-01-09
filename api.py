@@ -3,11 +3,11 @@ import json
 
 # api
 
-api_get_questions = "https://skill-matcher.liara.run/api/Question/GetQuestionsByTestId/22af796e-8614-4031-a792-5826eaffa32a"
+api_get_questions = "http://3.67.227.198:54321/api/Question/GetQuestionsByTestId/c5c056d6-0316-417a-b819-48a7e94cba2c"
 api_post_answer = (
     "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
 )
-api_get_questionerId = "https://skill-matcher.liara.run/api/Questioner/InsertUserId/"
+api_get_questionerId = "http://3.67.227.198:54321/api/Questioner/InsertUserId/"
 headers = {
     "Content-Type": "application/json",  # Include this if your API requires authentication
 }
@@ -50,6 +50,13 @@ def get_QuestionType(q):
     return list_questionType
 
 
+def get_QuestionLevels(q):
+    list_questionLevel = []
+    for i in range(0, len(q)):
+        list_questionLevel.append(q[i]["level"])
+    return list_questionLevel
+
+
 def get_OptionText(q, language):
     list_optionText = []
     for i in range(0, len(q)):
@@ -62,6 +69,9 @@ def get_OptionText(q, language):
 
 
 questions = get_data_question(api_get_questions)
+
+# Sort questions based on the 'level' key
+# sorted_questions = sorted(questions, key=lambda x: x["level"])
 
 
 def return_dataQuestion(language):

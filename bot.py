@@ -34,7 +34,7 @@ BOT_USERNAME: final = "@personaPathTestBot"
 #     [],
 #     ["Red", "Green", "Blue"],
 # ]
-# question_types = ["0", "0"]
+# question_types = ["0", "0", "1"]
 
 user_username = ""
 full_name = ""
@@ -64,7 +64,8 @@ user_id = ""
 #     "write your opinion learn better through reflection and mental exercise ",
 # ]
 
-questions, answer_options, question_types = [], [], []
+
+# questions, answer_options, question_types = [], [], []
 ranged_option = ["10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
 
 
@@ -89,7 +90,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     full_name = (
         f"{user_first_name} {user_last_name}" if user_last_name else user_first_name
     )
-    user_id = api.post_User(full_name, user_username)
+    # user_id = api.post_User(full_name, user_username)
     print(
         f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
     )
@@ -101,8 +102,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def language_selected(update: Update, context):
+    # Extract the selected language from the callback data
+    context.user_data["language"] = update.callback_query.data
+    print(context.user_data["language"])
+
+    # Call the new_test function with the selected language
+    await new_test(update, context)
+
+
 async def new_test(update: Update, context):
-    questions, answer_options, question_types = api.return_dataQuestion("english")
+    questions, answer_options, question_types = api.return_dataQuestion(
+        context.user_data["language"]
+    )
+    print(questions)
     # Store the data in the context object
     context.user_data["questions"] = questions
     context.user_data["answer_options"] = answer_options
@@ -116,10 +129,17 @@ async def new_test(update: Update, context):
     ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.callback_query.message.edit_text(
-        "If You want assistance, Select 'New test'",
-        reply_markup=reply_markup,
-    )
+    # Check if the callback query originated from a message
+    if update.callback_query and update.callback_query.message:
+        await update.callback_query.message.edit_text(
+            "If You want assistance, Select 'New test'",
+            reply_markup=reply_markup,
+        )
+    else:
+        await update.message.reply_text(
+            "If You want assistance, Select 'New test'",
+            reply_markup=reply_markup,
+        )
     # await show_question(update, context)
 
 
@@ -130,8 +150,8 @@ async def show_question(update, context):
     question_types = context.user_data.get("question_types")
     # Get Questioner id
 
-    questioner_id = api.get_QuestionerId(user_id)
-    print(questioner_id)
+    # questioner_id = api.get_QuestionerId(user_id)
+    # print(questioner_id)
 
     # Check if the update is a callback query or a regular message
     if update.callback_query:
@@ -189,6 +209,9 @@ async def show_question(update, context):
 # Define the function to handle the button press
 async def button(update, context):
     query = update.callback_query
+    questions = context.user_data.get("questions")
+    answer_options = context.user_data.get("answer_options")
+    question_types = context.user_data.get("question_types")
 
     # Store the answer index to the selected question in user_data
     question_index = context.user_data.get("question_index", 0)
@@ -238,6 +261,7 @@ async def answer(update, context):
     # Get the user's answer and the selected question index from user_data
     answer_text = update.message.text
     question_index = context.user_data.get("question_index")
+    questions = context.user_data.get("questions")
 
     if question_index is not None:
         # Store the answer in user_data
@@ -285,7 +309,9 @@ if __name__ == "__main__":
         # app.add_handler(MessageHandler(filters.ALL, init_user_data), group=-1)
 
         # Callback query for buttons
-        app.add_handler(CallbackQueryHandler(new_test, pattern="^english$"))
+        app.add_handler(CallbackQueryHandler(language_selected, pattern="^english$"))
+        app.add_handler(CallbackQueryHandler(language_selected, pattern="^persian$"))
+        # app.add_handler(CallbackQueryHandler(new_test, pattern="^english$"))
         app.add_handler(CallbackQueryHandler(show_question, pattern="^new_test$"))
         app.add_handler(CallbackQueryHandler(button))
 
