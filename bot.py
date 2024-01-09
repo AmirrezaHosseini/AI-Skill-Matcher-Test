@@ -105,7 +105,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def language_selected(update: Update, context):
     # Extract the selected language from the callback data
     context.user_data["language"] = update.callback_query.data
-    print(context.user_data["language"])
+    # print(context.user_data["language"])
 
     # Call the new_test function with the selected language
     await new_test(update, context)
@@ -115,7 +115,7 @@ async def new_test(update: Update, context):
     questions, answer_options, question_types = api.return_dataQuestion(
         context.user_data["language"]
     )
-    print(questions)
+
     # Store the data in the context object
     context.user_data["questions"] = questions
     context.user_data["answer_options"] = answer_options
@@ -168,7 +168,7 @@ async def show_question(update, context):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    answer,
+                    f"{idx})  {answer}",
                     callback_data=f"answer_{idx}",
                     switch_inline_query_current_chat="",
                 )
@@ -178,12 +178,12 @@ async def show_question(update, context):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # Send the message with the question and the keyboard
-        await message.reply_text(
-            f"Question number{question_index+1}\n{questions[question_index]}",
+        await message.edit_text(
+            f"Question number{question_index+1}\n{questions[question_index]} \n 1){answer_options[question_index][0]} \n 2){answer_options[question_index][1]}",
             reply_markup=reply_markup,
         )
     elif question_type == 2:  # Descriptive
-        await message.reply_text(
+        await message.edit_text(
             f"Question number{question_index+1}\n{questions[question_index]}"
         )
     elif question_type == 1:  # Ranged
@@ -200,7 +200,7 @@ async def show_question(update, context):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         # Send the message with the question and the keyboard
-        await message.reply_text(
+        await message.edit_text(
             f"Question number{question_index+1}\n{questions[question_index]}",
             reply_markup=reply_markup,
         )
@@ -228,9 +228,9 @@ async def button(update, context):
     # await query.message.reply_text(f"Your answer: {user_answer}")
 
     # Disable the buttons after answering
-    keyboard = [[]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_reply_markup(reply_markup)
+    # keyboard = [[]]
+    # reply_markup = InlineKeyboardMarkup(keyboard)
+    # await query.edit_message_reply_markup(reply_markup)
 
     # Delete the message after the user has chosen a button
     # await context.bot.delete_message(
