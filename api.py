@@ -2,12 +2,16 @@ import requests
 import json
 
 # api
+path = "https://skill-matcher.liara.run/api/"
 
-api_get_questions = "http://3.67.227.198:54321/api/Question/GetQuestionsByTestId/c5c056d6-0316-417a-b819-48a7e94cba2c"
-api_post_answer = (
-    "https://skill-matcher-api.liara.run/api/Questioner/InsertQuestionAnswer"
+api_get_questions = (
+    path
+    + "Question/GetQuestionsByLevelAndTestId/5751f4a7-b2b5-4602-a0a7-22b16913246b/2"
 )
-api_get_questionerId = "http://3.67.227.198:54321/api/Questioner/InsertUserId/"
+api_post_answer = path + "Questioner/InsertQuestionAnswer"
+api_insert_user = path + "User/InsertFirstInfoBot"
+api_get_questionerId = path + "Questioner/InsertUserId/"
+api_create_report = path + "Questioner/CreateReport/"
 headers = {
     "Content-Type": "application/json",  # Include this if your API requires authentication
 }
@@ -68,6 +72,15 @@ def get_OptionText(q, language):
     return list_optionText
 
 
+def get_Optionlist(q, number):
+    list_optionText = []
+    for i in range(0, len(q)):
+        options = q[i]["options"]
+        for j in number:
+            list_optionText.append(options[j])
+    return list_optionText
+
+
 questions = get_data_question(api_get_questions)
 
 # Sort questions based on the 'level' key
@@ -105,11 +118,12 @@ def post_User(name, telegramId):
     response = requests.post(
         "https://skill-matcher.liara.run/api/User/InsertFirstInfoBot", json=json_data
     )
+    user_DbId = ""
     # Check the response
     if response.status_code == 200:
         print("Request was successful!")
         user_DbId = json.loads(response.text)["id"]
-    elif response.status_code == 400:
+    elif response.status_code == 402:
         print("This TelegramID already exists")
         user_DbId = get_userdata_Existed(telegramId)
     else:
@@ -126,29 +140,31 @@ def get_userdata_Existed(telegramId):
 
     if response.status_code == 200:
         print("Request was successful!")
-        user_DbId = json.loads(response.text)["id"]
+        user_id = json.loads(response.text)["id"]
     else:
         print(f"Error: {response.status_code}")
 
-    return user_DbId
+    return user_id
 
 
-def send_Questioner(QuestionerId, user_id, answer, idx):
+def send_Questioner(user_id, QuestionerId, options, lan):
     # print(questions[1])
     # QuestionerId = get_QuestionerId(user_id)
     # print(QuestionerId)
     json_data = {
-        "id": QuestionerId,
-        "userId": user_id,
-        "questions": questions[idx],
-        "answers": answer,
+        "answers": get_Optionlist(questions, options),
+        "optionNo": options,
+        "questions": questions,
     }
 
-    response = requests.put(api_post_answer, json=json_data)
+    response = requests.put(
+        f"{api_create_report}{user_id}/{QuestionerId}", json=json_data
+    )
     # Check the response
     if response.status_code == 200:
         print("Request was successful!")
-        print(json.loads(response.text))
+        re = json.loads(response.text)
+        return re[0][lan]
     else:
         print(f"Error: {response.status_code}")
         print(response.text)

@@ -94,6 +94,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(
         f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
     )
+    context.user_data["user_id"] = api.post_User(full_name, user_username)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -108,19 +109,37 @@ async def language_selected(update: Update, context):
     # print(context.user_data["language"])
 
     # Call the new_test function with the selected language
-    await new_test(update, context)
+    await set_flow(update, context)
 
 
-async def new_test(update: Update, context):
-    questions, answer_options, question_types = api.return_dataQuestion(
-        context.user_data["language"]
+async def set_flow(update: Update, context):
+    if context.user_data["language"] == "persian":
+        keyboard = [
+            [
+                InlineKeyboardButton(" MBTI تست ", callback_data="mbti"),
+                InlineKeyboardButton("تست مهارت شناسی ", callback_data="skill"),
+                InlineKeyboardButton("تست شخصیت شناسی ", callback_data="personality"),
+            ]
+        ]
+        message = "تست مورد نظر خود را انتخاب کنید "
+    elif context.user_data["language"] == "english":
+        keyboard = [
+            [
+                InlineKeyboardButton("Test MBTI ", callback_data="mbti"),
+                InlineKeyboardButton("Test Skill Matcher", callback_data="skill"),
+                InlineKeyboardButton("Test Personality", callback_data="personality"),
+            ]
+        ]
+        message = " Select the test you want to do it "
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.edit_text(
+        message,
+        reply_markup=reply_markup,
     )
 
-    # Store the data in the context object
-    context.user_data["questions"] = questions
-    context.user_data["answer_options"] = answer_options
-    context.user_data["question_types"] = question_types
 
+async def status_test(update: Update, context):
     keyboard = [
         [
             InlineKeyboardButton("Previous Result", callback_data="previous_results"),
@@ -143,17 +162,29 @@ async def new_test(update: Update, context):
     # await show_question(update, context)
 
 
+async def new_test(update: Update, context):
+    questions, answer_options, question_types = api.return_dataQuestion(
+        context.user_data["language"]
+    )
+
+    # Store the data in the context object
+    context.user_data["questions"] = questions
+    context.user_data["answer_options"] = answer_options
+    context.user_data["question_types"] = question_types
+
+    context.user_data["questioner_id"] = api.get_QuestionerId(
+        context.user_data["user_id"]
+    )
+
+    await show_question(update, context)
+
+
 # Define the function to show the question and answer options
 async def show_question(update, context):
     questions = context.user_data.get("questions")
     answer_options = context.user_data.get("answer_options")
     question_types = context.user_data.get("question_types")
-    # Get Questioner id
 
-    # questioner_id = api.get_QuestionerId(user_id)
-    # print(questioner_id)
-
-    # Check if the update is a callback query or a regular message
     if update.callback_query:
         message = update.callback_query.message
     else:
@@ -220,6 +251,8 @@ async def button(update, context):
         context.user_data[f"Your answer_{question_index}"] = answer_options[
             question_index
         ][answer_index]
+        context.user_data[f"options_{question_index}"] = answer_index
+
     elif question_types[question_index] == 1:
         context.user_data[f"Your answer_{question_index}"] = ranged_option[answer_index]
 
@@ -242,12 +275,26 @@ async def button(update, context):
         context.user_data["question_index"] = question_index + 1
         await show_question(update, context)
     else:
-        results = [
-            f"Question {i + 1}: {questions[i]}\nYour answer: {context.user_data.get(f'Your answer_{i}', 'No answer selected')}"
+        # results = [
+        #     f"Question {i + 1}: {questions[i]}\nYour answer: {context.user_data.get(f'Your answer_{i}', 'No answer selected')}"
+        #     for i in range(len(questions))
+        # ]
+        options_list = [
+            context.user_data[f"options_{i}"] for i in range(len(questions))
+        ]
+        answers_list = [
+            context.user_data.get(f"Your answer_{i}", "No answer selected")
             for i in range(len(questions))
         ]
-        await query.message.reply_text(text="\n\n".join(results))
-        query.answer()
+        context.user_data["question_index"] = 0
+        response = api.send_Questioner(
+            context.user_data["user_id"],
+            context.user_data["questioner_id"],
+            options_list,
+            context.user_data["language"],
+        )
+        await query.message.reply_text(text=response)
+        # query.answer()
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -277,6 +324,7 @@ async def answer(update, context):
                 f"Question {i + 1}: {questions[i]}\nYour answer: {context.user_data.get(f'Your answer_{i}', 'No answer selected')}"
                 for i in range(len(questions))
             ]
+
         await update.message.reply_text(text="\n\n".join(results))
         update.answer()
     else:
@@ -311,8 +359,8 @@ if __name__ == "__main__":
         # Callback query for buttons
         app.add_handler(CallbackQueryHandler(language_selected, pattern="^english$"))
         app.add_handler(CallbackQueryHandler(language_selected, pattern="^persian$"))
-        # app.add_handler(CallbackQueryHandler(new_test, pattern="^english$"))
-        app.add_handler(CallbackQueryHandler(show_question, pattern="^new_test$"))
+        app.add_handler(CallbackQueryHandler(status_test, pattern="^mbti$"))
+        app.add_handler(CallbackQueryHandler(new_test, pattern="^new_test$"))
         app.add_handler(CallbackQueryHandler(button))
 
         # # messages
