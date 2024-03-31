@@ -2,7 +2,7 @@ import requests
 import json
 
 # api
-path = "https://skill-matcher.liara.run/api/"
+path = "https://skillmatcher.liara.run/api/"
 
 api_get_questions = (
     path
@@ -15,6 +15,8 @@ api_create_report = path + "Questioner/CreateReport/"
 headers = {
     "Content-Type": "application/json",  # Include this if your API requires authentication
 }
+api_get_workflows = "http://127.0.0.1:5000/api/GetWorkflows/"
+api_InsertOtherinfo = "User/InsertOtherinfo"
 
 
 # Define the function to send a GET request
@@ -81,13 +83,15 @@ def get_Optionlist(q, number):
     return list_optionText
 
 
-questions = get_data_question(api_get_questions)
+# questions = get_data_question(api_get_questions)
 
 # Sort questions based on the 'level' key
 # sorted_questions = sorted(questions, key=lambda x: x["level"])
 
 
-def return_dataQuestion(language):
+def return_dataQuestion(language, url):
+    global questions
+    questions = get_data_question(path + "Question/GetQuestionsByLevelAndTestId/" + url)
     questionText = get_QuestionText(questions, language)
     OptionText = get_OptionText(questions, language)
     typeText = get_QuestionType(questions)
@@ -110,14 +114,14 @@ def get_QuestionerId(user_id):
 
 
 def post_User(name, telegramId):
+    global telgid
     json_data = {
         "name": name,
         "preferredLanguage": 0,
         "telegramId": telegramId,
     }
-    response = requests.post(
-        "https://skill-matcher.liara.run/api/User/InsertFirstInfoBot", json=json_data
-    )
+    telgid = telegramId
+    response = requests.post(path + "User/InsertFirstInfoBot", json=json_data)
     user_DbId = ""
     # Check the response
     if response.status_code == 200:
@@ -132,10 +136,22 @@ def post_User(name, telegramId):
     return user_DbId
 
 
-def get_userdata_Existed(telegramId):
-    response = requests.get(
-        f"https://skill-matcher.liara.run/api/User/GetUserInfoBot/{telegramId}"
+def send_info(age, job, telegramid):
+    json_data = {
+        "age": age,
+        "job": job,
+    }
+    response = requests.post(
+        path + api_InsertOtherinfo + f"?telegramId={telegramid}", json=json_data
     )
+    if response.status_code == 200:
+        print("send was successful!")
+    else:
+        print(f"Error: {response.status_code}")
+
+
+def get_userdata_Existed(telegramId):
+    response = requests.get(path + f"User/GetUserInfoBot/{telegramId}")
     # Check the response
 
     if response.status_code == 200:
@@ -147,7 +163,7 @@ def get_userdata_Existed(telegramId):
     return user_id
 
 
-def send_Questioner(user_id, QuestionerId, options, lan):
+def send_Questioner(user_id, QuestionerId, options, lan, testid):
     # print(questions[1])
     # QuestionerId = get_QuestionerId(user_id)
     # print(QuestionerId)
@@ -158,7 +174,8 @@ def send_Questioner(user_id, QuestionerId, options, lan):
     }
 
     response = requests.put(
-        f"{api_create_report}{user_id}/{QuestionerId}", json=json_data
+        f"{api_create_report}{user_id}/{QuestionerId}?testId={testid}&level=2",
+        json=json_data,
     )
     # Check the response
     if response.status_code == 200:
@@ -168,6 +185,30 @@ def send_Questioner(user_id, QuestionerId, options, lan):
     else:
         print(f"Error: {response.status_code}")
         print(response.text)
+
+
+def get_workflows():
+    # url = api_get_workflows
+    try:
+        response = {
+            "workflowName": "test 1",
+            "status": "not active",
+            "routin": [
+                {
+                    "id": 1,
+                    "tests": ["5751f4a7-b2b5-4602-a0a7-22b16913246b/2"],
+                    "prompt": {
+                        "yes": "b162f0cb-4c71-4f6f-afab-a80cda394e72",
+                        "no": "b162f0cb-4c71-4f6f-afab-a80cda394e72",
+                    },
+                }
+            ],
+        }
+        response.raise_for_status()
+        return json.loads(response)
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return
 
 
 # print(questions[1]["questionText"]["English"])

@@ -13,19 +13,20 @@ from telegram.ext import (
     filters,
     ContextTypes,
     CallbackQueryHandler,
+    ConversationHandler,
 )
 import telegram.error
 
 import api
 
 ##### get data  #####
-# print(api.return_questionText())
+
 
 # bot identity
-# TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
-# BOT_USERNAME: final = "@AI_Skill_MatcherBot"
-TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
-BOT_USERNAME: final = "@personaPathTestBot"
+TOKEN: final = "6835505632:AAFJ9Auz7wSS3R-3e89FKIXBQv3OeIEuJHY"
+BOT_USERNAME: final = "@AI_Skill_MatcherBot"
+# TOKEN: final = "6650488420:AAFayPXrcyuBaJ0HX8upU2CkFnp3AZLUVu0"
+# BOT_USERNAME: final = "@personaPathTestBot"
 
 # Define the questions and answer options
 # questions = ["What is your name?", "What is your age?", "What is your favorite color?"]
@@ -40,6 +41,9 @@ user_username = ""
 full_name = ""
 # id save in DataBase
 user_id = ""
+
+# Define states for conversation
+FIRST, SECOND = range(2)
 
 
 # answer_options = [
@@ -64,14 +68,7 @@ user_id = ""
 #     "write your opinion learn better through reflection and mental exercise ",
 # ]
 
-
-# questions, answer_options, question_types = [], [], []
 ranged_option = ["10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%"]
-
-
-# print(type(questions))
-
-# Define the function to handle the /start command
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,15 +83,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_first_name = user.first_name
     user_last_name = user.last_name
     user_username = user.username
-
+    context.user_data["user_username"] = user_username
     full_name = (
         f"{user_first_name} {user_last_name}" if user_last_name else user_first_name
     )
-    # user_id = api.post_User(full_name, user_username)
+    # context.user_data["user_id"] = api.post_User(full_name, user_username)
+    context.user_data["user_id"] = "c7951c1f-6ca9-44d7-aaf6-54a7a845a82e"
     print(
         f"User Information:\nID: {user_id}\nFull Name: {full_name}\nUsername: {user_username}"
     )
-    context.user_data["user_id"] = api.post_User(full_name, user_username)
+    # context.user_data["user_id"] = api.post_User(full_name, user_username)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -106,40 +104,54 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def language_selected(update: Update, context):
     # Extract the selected language from the callback data
     context.user_data["language"] = update.callback_query.data
-    # print(context.user_data["language"])
+    print(context.user_data["language"])
 
     # Call the new_test function with the selected language
     await set_flow(update, context)
 
 
 async def set_flow(update: Update, context):
-    if context.user_data["language"] == "persian":
-        keyboard = [
-            [
-                InlineKeyboardButton(" MBTI تست ", callback_data="mbti"),
-                InlineKeyboardButton("تست مهارت شناسی ", callback_data="skill"),
-                InlineKeyboardButton("تست شخصیت شناسی ", callback_data="personality"),
-            ]
+    context.user_data["workflows"] = api.get_workflows()
+    # if context.user_data["language"] == "persian":
+    #     keyboard = [
+    #         [
+    #             InlineKeyboardButton(" MBTI تست ", callback_data="mbti"),
+    #             InlineKeyboardButton("تست مهارت شناسی ", callback_data="skill"),
+    #             InlineKeyboardButton("تست شخصیت شناسی ", callback_data="personality"),
+    #         ]
+    #     ]
+    #     message = "تست مورد نظر خود را انتخاب کنید "
+    # elif context.user_data["language"] == "english":
+    #     keyboard = [
+    #         [
+    #             InlineKeyboardButton("Test MBTI ", callback_data="mbti"),
+    #             InlineKeyboardButton("Test Skill Matcher", callback_data="skill"),
+    #             InlineKeyboardButton("Test Personality", callback_data="personality"),
+    #         ]
+    #     ]
+    #     message = " Select the test you want to do it "
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"{idx + 1}) {workflow['workflowName']}",
+                callback_data=f"{idx} workflow",
+            )
         ]
-        message = "تست مورد نظر خود را انتخاب کنید "
-    elif context.user_data["language"] == "english":
-        keyboard = [
-            [
-                InlineKeyboardButton("Test MBTI ", callback_data="mbti"),
-                InlineKeyboardButton("Test Skill Matcher", callback_data="skill"),
-                InlineKeyboardButton("Test Personality", callback_data="personality"),
-            ]
-        ]
-        message = " Select the test you want to do it "
+        for idx, workflow in enumerate(context.user_data.get("workflows", []), start=0)
+    ]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.callback_query.message.edit_text(
-        message,
+        " Select the test you want to do it ",
         reply_markup=reply_markup,
     )
 
 
-async def status_test(update: Update, context):
+async def workflow_test(update: Update, context):
+    print(" work flow select")
+    workflow_idx = int(update.callback_query.data.split(" ")[0])
+    # context.user_data["workflows"]s
+    context.user_data["flow"] = context.user_data["workflows"][workflow_idx]
     keyboard = [
         [
             InlineKeyboardButton("Previous Result", callback_data="previous_results"),
@@ -162,11 +174,118 @@ async def status_test(update: Update, context):
     # await show_question(update, context)
 
 
-async def new_test(update: Update, context):
-    questions, answer_options, question_types = api.return_dataQuestion(
-        context.user_data["language"]
+async def handle_flow(update: Update, context):
+    context.user_data["for"] = 0
+    print(context.user_data["flow"]["routin"])
+    routin = context.user_data["flow"]["routin"]
+    test = routin[0]["tests"][0]
+    context.user_data["testid"] = test.split("/")[0]
+    await new_test(update, context, test)
+
+    # if context.user_data["for"] == len(routin[0]["tests"]):
+    #     context.user_data["for"] = 0
+    #     await prompt(update, context)
+
+
+async def routin(update: Update, context, idx):
+    context.user_data["for"] = 0
+    print(context.user_data["flow"]["routin"])
+    routin = context.user_data["flow"]["routin"]
+    for test in routin[idx]["tests"]:
+        context.user_data["testid"] = test
+        await new_test(update, context, test)
+
+    # if context.user_data["for"] == len(routin[0]["tests"]):
+    #     context.user_data["for"] = 0
+    #     await prompt(update, context)
+
+
+async def ask_question(update: Update, context):
+    print("ask    ----  ")
+    # if update.callback_query:
+    # await update.callback_query.answer()
+    if "question1" not in context.user_data:
+        await update.callback_query.message.edit_text(
+            "if you want the report result please answer this questions \n Question 1: how old are you ?"
+        )
+    elif "question2" not in context.user_data:
+        await update.message.reply_text("Question 2: What is your job ?")
+
+
+# Define a function to handle user answers
+async def handle_answer(update: Update, context):
+
+    user_text = update.message.text
+    if "question1" not in context.user_data:
+        context.user_data["question1"] = user_text
+        await ask_question(update, context)  # Ask the next question
+    elif "question2" not in context.user_data:
+        keyboard = [
+            [
+                InlineKeyboardButton("َAnalysis with AI Model ", callback_data="Model"),
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        context.user_data["question2"] = user_text
+        api.send_info(
+            context.user_data["question1"],
+            context.user_data["question2"],
+            context.user_data["user_username"],
+        )
+        res = context.user_data["response"]
+        await update.message.reply_text(
+            f"Thank you for answering! Here are your report:\n {res}",
+            reply_markup=reply_markup,
+        )
+        # Clear user_answers for future interactions
+        # user_answers.clear()
+
+
+async def ask_prompt(update: Update, context):
+    keyboard = [
+        [
+            InlineKeyboardButton("Skills Analysis", callback_data="prompt skills"),
+            InlineKeyboardButton(
+                "Personality Analysis", callback_data="prompt personality "
+            ),
+        ]
+    ]
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    if update.callback_query and update.callback_query.message:
+        await update.callback_query.message.edit_text(
+            "Select the option you want it ",
+            reply_markup=reply_markup,
+        )
+    else:
+        await update.message.reply_text(
+            "Select the option you want it",
+            reply_markup=reply_markup,
+        )
+
+
+async def model(update: Update, context):
+    query = update.callback_query
+
+    keyboard = [
+        [
+            InlineKeyboardButton("New Test", callback_data="new_test"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Ai respone ",
+        reply_markup=reply_markup,
     )
 
+
+async def new_test(update: Update, context, test):
+    print(" new test func")
+    questions, answer_options, question_types = api.return_dataQuestion(
+        context.user_data["language"], test
+    )
+    print(" data q")
     # Store the data in the context object
     context.user_data["questions"] = questions
     context.user_data["answer_options"] = answer_options
@@ -252,23 +371,8 @@ async def button(update, context):
             question_index
         ][answer_index]
         context.user_data[f"options_{question_index}"] = answer_index
-
     elif question_types[question_index] == 1:
         context.user_data[f"Your answer_{question_index}"] = ranged_option[answer_index]
-
-    # Display the user's answer
-    # user_answer = context.user_data[f"Your answer_{question_index}"]
-    # await query.message.reply_text(f"Your answer: {user_answer}")
-
-    # Disable the buttons after answering
-    # keyboard = [[]]
-    # reply_markup = InlineKeyboardMarkup(keyboard)
-    # await query.edit_message_reply_markup(reply_markup)
-
-    # Delete the message after the user has chosen a button
-    # await context.bot.delete_message(
-    #     chat_id=query.message.chat_id, message_id=query.message.message_id
-    # )
 
     # Move to the next question or show the results
     if question_index < len(questions) - 1:
@@ -282,18 +386,24 @@ async def button(update, context):
         options_list = [
             context.user_data[f"options_{i}"] for i in range(len(questions))
         ]
-        answers_list = [
-            context.user_data.get(f"Your answer_{i}", "No answer selected")
-            for i in range(len(questions))
-        ]
+        # answers_list = [
+        #     context.user_data.get(f"Your answer_{i}", "No answer selected")
+        #     for i in range(len(questions))
+        # ]
         context.user_data["question_index"] = 0
         response = api.send_Questioner(
             context.user_data["user_id"],
             context.user_data["questioner_id"],
             options_list,
             context.user_data["language"],
+            context.user_data["testid"],
         )
-        await query.message.reply_text(text=response)
+        print(response)
+        context.user_data["response"] = response
+        context.user_data["for"] += 1
+        # await query.message.reply_text(response)
+        await ask_question(update, context)
+
         # query.answer()
 
 
@@ -349,9 +459,15 @@ if __name__ == "__main__":
 
         # commands
         app.add_handler(CommandHandler("start", start))
+
+        # Add message handler to ask questions
+
+        # Add message handler to handle user answers
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_answer))
+
         app.add_handler(CommandHandler("help", help_command))
 
-        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer))
+        # app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, answer))
 
         # Add the init_user_data function to the list of handlers to be called on every update
         # app.add_handler(MessageHandler(filters.ALL, init_user_data), group=-1)
@@ -359,8 +475,18 @@ if __name__ == "__main__":
         # Callback query for buttons
         app.add_handler(CallbackQueryHandler(language_selected, pattern="^english$"))
         app.add_handler(CallbackQueryHandler(language_selected, pattern="^persian$"))
-        app.add_handler(CallbackQueryHandler(status_test, pattern="^mbti$"))
-        app.add_handler(CallbackQueryHandler(new_test, pattern="^new_test$"))
+        app.add_handler(CallbackQueryHandler(workflow_test, pattern=".*workflow.*"))
+        app.add_handler(CallbackQueryHandler(handle_flow, pattern="^new_test$"))
+        app.add_handler(CallbackQueryHandler(ask_prompt, pattern="^Model$"))
+        app.add_handler(CallbackQueryHandler(model, pattern=".*prompt.*"))
+        # app.add_handler(CallbackQueryHandler(prompt_selected, pattern="^(yes|no)$"))
+
+        # Define the asynchronous conversation handler with states FIRST and SECOND
+        # )
+
+        # Add conversation handler to the application
+        # app.add_handler(conv_handler)
+
         app.add_handler(CallbackQueryHandler(button))
 
         # # messages
@@ -373,3 +499,43 @@ if __name__ == "__main__":
         app.run_polling()
     except telegram.error.TimedOut:
         print("Timeout error occurred")
+
+
+# async def prompt(update, context):
+#     # prompt = context.user_data["flow"]["prompt"]
+
+#     keyboard = [
+#         [
+#             InlineKeyboardButton("Yes", callback_data="yes"),
+#             InlineKeyboardButton("No", callback_data="no"),
+#         ]
+#     ]
+
+#     reply_markup = InlineKeyboardMarkup(keyboard)
+
+#     if update.callback_query and update.callback_query.message:
+#         await update.callback_query.message.edit_text(
+#             "If You want to continue click Yes and get result Click No ",
+#             reply_markup=reply_markup,
+#         )
+#     else:
+#         await update.message.reply_text(
+#             "If You want to continue click Yes and get result Click No ",
+#             reply_markup=reply_markup,
+#         )
+
+
+# async def prompt_selected(update: Update, context):
+#     # Extract the data
+#     prompt = context.user_data["flow"]["routin"][0]["prompt"]
+
+#     answer = update.callback_query.data
+#     user_ans = prompt[answer]
+#     # print(context.user_data["language"])
+#     if str(user_ans).isdigit():
+#         await routin(Update, context, user_ans)
+#     else:
+#         await update.callback_query.message.edit_text(
+#             "Your prompt :" + str(user_ans),
+#         )
+#     # Call the new_test function with the selected language
